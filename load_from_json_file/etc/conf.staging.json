@@ -1,0 +1,8 @@
+{
+  "db_user": "<db user>",
+  "db_server": "<db server>",
+  "db_name": "<db name>",
+  "db_passwd": "<db password>",
+  "db_port": 5432,
+  "db_conn_limit": 4
+}

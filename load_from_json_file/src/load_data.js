@@ -13,7 +13,8 @@ const pool = new Pool({
   }
 })
 
-const aqiData = require('../data/aqi_openweather_2021_jan_01_to_2022_sep_10.json')
+// Make sure to insert the directory of your downloaded data here.
+const aqiData = require('../data/aqi_openweather_cancun_2021_jan_01_to_2022_oct_13.json')
 const lat = aqiData.coord.lat
 const lon = aqiData.coord.lon
 
@@ -21,15 +22,64 @@ async function main() {
   let count = 0
   console.log('Loading records: in progress.')
   for (let measurement of aqiData.list) {
+    // Get geographyId
     let q = `
-      INSERT INTO air_measurements
-        (lon, lat, aqi, co, no, no2, o3, so2, pm2_5, pm10, nh3, unix_measurement_dt)
+      select id 
+      from dim_geography dg 
+      where dg.lat = $1 and lon = $2
+      limit 1;
+    `
+    let args = [lat, lon]
+    let res = await pool.query(q, args)
+    const geographyId = parseInt(res.rows[0].id)
+    // console.log(`dim_geography.id: ${geographyId}`)
+
+    // Get dateId
+    q = `
+      select id
+      from dim_date
+      where full_date = to_timestamp($1)::date;
+    `
+    args = [measurement.dt]
+    res = await pool.query(q, args)
+    const dateId = parseInt(res.rows[0].id)
+    // console.log(`dim_date.id: ${dateId}`)
+
+    // Get timeId
+    q = `
+      select id
+      from dim_time
+      where full_time = to_timestamp($1)::time;
+    `
+    args = [measurement.dt]
+    res = await pool.query(q, args)
+    const timeId = parseInt(res.rows[0].id)
+    // console.log(`dim_time.id: ${timeId}`)
+
+    // console.log('---------------------')
+
+    q = `
+      INSERT INTO fact_air_measurements
+        ( 
+          geography_id,
+          date_id,
+          time_id,
+          aqi_id,
+          co,
+          no,
+          no2,
+          o3,
+          so2,
+          pm2_5,
+          pm10,
+          nh3)
       VALUES
         ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
     `
-    let args = [
-      lon,
-      lat,
+    args = [
+      geographyId,
+      dateId,
+      timeId,
       measurement.main.aqi,
       measurement.components.co,
       measurement.components.no,
@@ -38,8 +88,7 @@ async function main() {
       measurement.components.so2,
       measurement.components.pm2_5,
       measurement.components.pm10,
-      measurement.components.nh3,
-      measurement.dt
+      measurement.components.nh3
     ]
     await pool.query(q, args)
     count++
