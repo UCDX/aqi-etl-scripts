@@ -1,0 +1,8 @@
+{
+  "db_user": "alecito",
+  "db_server": "localhost",
+  "db_name": "aqi_project",
+  "db_passwd": "qwerty",
+  "db_port": 5432,
+  "db_conn_limit": 10
+}
