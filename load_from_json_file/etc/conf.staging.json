@@ -1,8 +1,0 @@
-{
-  "db_user": "postgres",
-  "db_server": "school-projects.cf1pikxnxsbu.us-east-2.rds.amazonaws.com",
-  "db_name": "aqi_project",
-  "db_passwd": "Q0QpSV9UyMaK5VAcdDSH",
-  "db_port": 5432,
-  "db_conn_limit": 4
-}
