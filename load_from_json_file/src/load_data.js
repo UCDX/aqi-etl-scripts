@@ -22,64 +22,14 @@ async function main() {
   let count = 0
   console.log('Loading records: in progress.')
   for (let measurement of aqiData.list) {
-    // Get geographyId
-    let q = `
-      select id 
-      from dim_geography dg 
-      where dg.lat = $1 and lon = $2
-      limit 1;
-    `
-    let args = [lat, lon]
-    let res = await pool.query(q, args)
-    const geographyId = parseInt(res.rows[0].id)
-    // console.log(`dim_geography.id: ${geographyId}`)
-
-    // Get dateId
-    q = `
-      select id
-      from dim_date
-      where full_date = to_timestamp($1)::date;
-    `
-    args = [measurement.dt]
-    res = await pool.query(q, args)
-    const dateId = parseInt(res.rows[0].id)
-    // console.log(`dim_date.id: ${dateId}`)
-
-    // Get timeId
-    q = `
-      select id
-      from dim_time
-      where full_time = to_timestamp($1)::time;
-    `
-    args = [measurement.dt]
-    res = await pool.query(q, args)
-    const timeId = parseInt(res.rows[0].id)
-    // console.log(`dim_time.id: ${timeId}`)
-
-    // console.log('---------------------')
-
-    q = `
-      INSERT INTO fact_air_measurements
-        ( 
-          geography_id,
-          date_id,
-          time_id,
-          aqi_id,
-          co,
-          no,
-          no2,
-          o3,
-          so2,
-          pm2_5,
-          pm10,
-          nh3)
-      VALUES
+    const query = `
+      CALL insert_fact_air_measurement
         ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
     `
-    args = [
-      geographyId,
-      dateId,
-      timeId,
+    const args = [
+      lat, 
+      lon,
+      measurement.dt,
       measurement.main.aqi,
       measurement.components.co,
       measurement.components.no,
@@ -90,8 +40,12 @@ async function main() {
       measurement.components.pm10,
       measurement.components.nh3
     ]
-    await pool.query(q, args)
+    await pool.query(query, args)
+
     count++
+    if (count % 1000 === 0) {
+      console.log(`Loading records: ${count} records loaded. Continuing...`)
+    }
   }
   console.log(`Loading records: Done. Loaded ${count} rows.`)
 }
